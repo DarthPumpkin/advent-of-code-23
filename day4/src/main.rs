@@ -1,5 +1,5 @@
 use core::panic;
-use std::{collections::HashSet};
+use std::collections::HashSet;
 use std::{env, vec};
 use itertools::Itertools;
 
