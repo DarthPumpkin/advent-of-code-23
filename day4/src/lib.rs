@@ -5,9 +5,9 @@ use std::fs;
 pub const INPUT_FILE: &str = "input.txt";
 pub const OUTPUT_FILE: &str = "output.txt";
 
-pub fn read_input_lines() -> Vec<Box<str>> {
+pub fn read_input_lines() -> Vec<String> {
     let input = fs::read_to_string(INPUT_FILE).expect("Error reading file");
-    input.trim_end().split("\n").map(|x| x.into()).collect()
+    input.lines().map(|x| x.to_string()).collect()
 }
 
 pub fn write_output(output: impl ToString) {

@@ -44,10 +44,11 @@ impl Card {
 }
 
 
-fn parse_input(input: &[Box<str>]) -> Vec<Card> {
-    input.into_iter()
-    .map(|x| parse_line(x))
-    .collect()
+fn parse_input(input: &[impl AsRef<str>]) -> Box<[Card]> {
+    let cars = input.into_iter()
+        .map(|x| parse_line(x.as_ref()))
+        .collect();
+    cars
 }
 
 fn parse_line(line: &str) -> Card {
