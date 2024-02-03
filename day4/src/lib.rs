@@ -14,7 +14,7 @@ pub fn read_input_lines(path: impl AsRef<Path>) -> Vec<String> {
 }
 
 pub fn write_output(output: impl ToString) {
-    fs::write(OUTPUT_FILE, output.to_string()).expect("Error writing file");
+    println!("{}", output.to_string());
 }
 
 
