@@ -1,16 +1,15 @@
 use std::collections::HashSet;
 use std::fs;
+use std::io::{self, BufRead};
 use std::path::Path;
 use itertools::Itertools;
 
 
-// const INPUT_FILE: &str = "test_input.txt";
 pub const INPUT_FILE: &str = "input.txt";
-pub const OUTPUT_FILE: &str = "output.txt";
 
-pub fn read_input_lines(path: impl AsRef<Path>) -> Vec<String> {
-    let input = fs::read_to_string(path).expect("Error reading file");
-    input.lines().map(|x| x.to_string()).collect()
+pub fn iter_input_lines(filename: impl AsRef<Path>) -> io::Result<impl Iterator<Item = io::Result<String>>> {
+    let file = fs::File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
 }
 
 pub fn write_output(output: impl ToString) {
@@ -40,9 +39,9 @@ impl Card {
     }
 }
 
-pub fn parse_input(input: &[impl AsRef<str>]) -> Box<[Card]> {
-    let cars = input.into_iter()
-        .map(|x| parse_line(x.as_ref()))
+pub fn parse_input_iter(input: impl Iterator<Item = String>) -> Box<[Card]> {
+    let cars = input
+        .map(|x| parse_line(&x))
         .collect();
     cars
 }

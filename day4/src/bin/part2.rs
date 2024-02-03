@@ -1,16 +1,19 @@
 use std::path::Path;
 
-use day4::{parse_input, read_input_lines, write_output, Card, INPUT_FILE};
+use day4::{Card, iter_input_lines, parse_input_iter, write_output, INPUT_FILE};
 
 
 fn main() {
     let output = read_and_solve_part2(INPUT_FILE).to_string();
-    write_output(&output);
+    write_output(output);
 }
 
+
 fn read_and_solve_part2(file_path: impl AsRef<Path>) -> u64 {
-    let input = read_input_lines(file_path);
-    let input = parse_input(&input);
+    let input = iter_input_lines(file_path)
+        .unwrap()
+        .flatten();
+    let input = parse_input_iter(input);
     solve_part2(&input)
 }
 
