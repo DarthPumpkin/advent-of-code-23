@@ -1,11 +1,17 @@
-use day4::{Card, read_input_lines, parse_input, write_output};
+use std::path::Path;
+
+use day4::{parse_input, read_input_lines, write_output, Card, INPUT_FILE};
 
 
 fn main() {
-    let input = read_input_lines();
-    let input = parse_input(&input);
-    let output = solve_part2(&input).to_string();
+    let output = read_and_solve_part2(INPUT_FILE).to_string();
     write_output(&output);
+}
+
+fn read_and_solve_part2(file_path: impl AsRef<Path>) -> u64 {
+    let input = read_input_lines(file_path);
+    let input = parse_input(&input);
+    solve_part2(&input)
 }
 
 fn solve_part2(cards: &[Card]) -> u64 {
@@ -18,4 +24,18 @@ fn solve_part2(cards: &[Card]) -> u64 {
         }
     }
     n_copies.iter().sum()
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_SOLUTION: u64 = 30;
+
+    #[test]
+    fn test_part2() {
+        let test_output = read_and_solve_part2("test_input.txt");
+        assert_eq!(test_output, TEST_SOLUTION);
+    }
 }

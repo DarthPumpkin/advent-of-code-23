@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fs;
+use std::path::Path;
 use itertools::Itertools;
 
 
@@ -7,8 +8,8 @@ use itertools::Itertools;
 pub const INPUT_FILE: &str = "input.txt";
 pub const OUTPUT_FILE: &str = "output.txt";
 
-pub fn read_input_lines() -> Vec<String> {
-    let input = fs::read_to_string(INPUT_FILE).expect("Error reading file");
+pub fn read_input_lines(path: impl AsRef<Path>) -> Vec<String> {
+    let input = fs::read_to_string(path).expect("Error reading file");
     input.lines().map(|x| x.to_string()).collect()
 }
 
