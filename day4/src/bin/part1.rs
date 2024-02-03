@@ -1,3 +1,7 @@
+#![feature(test)]
+extern crate test;
+
+
 use std::path::Path;
 
 use day4::{Card, iter_input_lines, parse_input_iter, write_output, INPUT_FILE};
@@ -31,5 +35,10 @@ mod tests {
     fn test_part1() {
         let test_output = read_and_solve_part1("test_input.txt");
         assert_eq!(test_output, TEST_SOLUTION);
+    }
+
+    #[bench]
+    fn bench_part1(b: &mut test::Bencher) {
+        b.iter(|| read_and_solve_part1(INPUT_FILE));
     }
 }
