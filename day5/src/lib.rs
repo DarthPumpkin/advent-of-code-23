@@ -96,6 +96,23 @@ pub fn parse_map(batch: &Vec<String>) -> Map {
     Map { directions }
 }
 
+/// Parse a whitespace-separated list of numbers
+/// 
+/// # Arguments
+/// 
+/// * `numbers` - A string containing a whitespace-separated list of numbers
+/// 
+/// # Returns
+/// 
+/// A vector of parsed numbers
+/// 
+/// # Example
+/// 
+/// ```
+/// let numbers = "1 2 3 4 5";
+/// let parsed = day5::parse_numbers(numbers);
+/// assert_eq!(parsed, Ok(vec![1, 2, 3, 4, 5]));
+/// ```
 pub fn parse_numbers<T: FromStr>(numbers: &str) -> Result<Vec<T>, <T as FromStr>::Err> {
     numbers
         .split_whitespace()
