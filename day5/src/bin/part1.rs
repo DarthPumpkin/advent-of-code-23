@@ -1,0 +1,48 @@
+#![feature(test)]
+extern crate test;
+
+
+use std::path::Path;
+
+use day5::{iter_input_lines, parse_input_iter, write_output, INPUT_FILE};
+use day5::PuzzleInput;
+
+
+fn main() {
+    let output = read_and_solve_part1(INPUT_FILE).to_string();
+    write_output(output);
+}
+
+
+fn read_and_solve_part1(file_path: impl AsRef<Path>) -> u64 {
+    let input = iter_input_lines(file_path)
+        .unwrap()
+        .flatten();
+    let input = parse_input_iter(input);
+    solve_part1(&input)
+}
+
+fn solve_part1(input: &PuzzleInput) -> u64 {
+    let locations = input.seeds.iter().map(|&seed| {
+        input.maps.iter().fold(seed, |location, map| map.apply(location))
+    });
+    locations.min().unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_SOLUTION: u64 = 35;
+
+    #[test]
+    fn test_part1() {
+        let test_output = read_and_solve_part1("test_input.txt");
+        assert_eq!(test_output, TEST_SOLUTION);
+    }
+
+    #[bench]
+    fn bench_part1(b: &mut test::Bencher) {
+        b.iter(|| read_and_solve_part1(INPUT_FILE));
+    }
+}
