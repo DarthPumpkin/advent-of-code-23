@@ -16,7 +16,7 @@ pub fn write_output(output: impl ToString) {
     println!("{}", output.to_string());
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PuzzleInput {
     pub instructions: Vec<Instruction>,
     pub map: Vec<(String, String, String)>,
@@ -90,7 +90,7 @@ mod tests {
 /// 
 /// ```
 /// let numbers = "1 2 3 4 5";
-/// let parsed = day5::parse_numbers(numbers);
+/// let parsed = day8::parse_numbers(numbers);
 /// assert_eq!(parsed, Ok(vec![1, 2, 3, 4, 5]));
 /// ```
 pub fn parse_numbers<T: FromStr>(numbers: &str) -> Result<Vec<T>, <T as FromStr>::Err> {
