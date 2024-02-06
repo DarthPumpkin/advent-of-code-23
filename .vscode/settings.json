@@ -3,5 +3,6 @@
         "./day4/Cargo.toml",
         "./day5/Cargo.toml",
         "./day8/Cargo.toml",
+        "./day9/Cargo.toml",
     ]
 }
