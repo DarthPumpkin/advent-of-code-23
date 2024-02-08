@@ -47,6 +47,12 @@ impl Pipe {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Coordinate {
+    pub y: usize,
+    pub x: usize,
+}
+
 
 /// Parse a whitespace-separated list of numbers
 /// 
