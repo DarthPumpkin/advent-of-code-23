@@ -1,7 +1,6 @@
 #![feature(test)]
 extern crate test;
 
-use std::collections::HashSet;
 use std::path::Path;
 
 use day11::{read_input, parse_input, write_output, INPUT_FILE};
@@ -21,16 +20,14 @@ fn read_and_solve(file_path: impl AsRef<Path>) -> i64 {
 }
 
 fn solve(input: &PuzzleInput) -> i64 {
-    let mut empty_rows: HashSet<_> = (0..input.height).collect();
-    let mut empty_cols: HashSet<_> = (0..input.width).collect();
+    let mut empty_rows = vec![true; input.height];
+    let mut empty_cols = vec![true; input.width];
     for galaxy in input.galaxies.iter() {
-        empty_rows.remove(&galaxy.y);
-        empty_cols.remove(&galaxy.x);
+        empty_rows[galaxy.y] = false;
+        empty_cols[galaxy.x] = false;
     }
-    let mut empty_rows: Vec<_> = empty_rows.into_iter().collect();
-    let mut empty_cols: Vec<_> = empty_cols.into_iter().collect();
-    empty_rows.sort();
-    empty_cols.sort();
+    let empty_rows: Vec<_> = (0..input.height).filter(|&i| empty_rows[i]).collect();
+    let empty_cols: Vec<_> = (0..input.width).filter(|&i| empty_cols[i]).collect();
     let adjusted_coos: Vec<_> = input.galaxies.iter().map(|galaxy| {
         (galaxy.y as i64 + empty_rows.binary_search(&galaxy.y).unwrap_or_else(|i| i) as i64,
          galaxy.x as i64 + empty_cols.binary_search(&galaxy.x).unwrap_or_else(|i| i) as i64)
