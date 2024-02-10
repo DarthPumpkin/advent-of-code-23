@@ -35,7 +35,7 @@ pub struct PuzzleInput {
     pub lines: Box<[PuzzleLine]>,   
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PuzzleLine {
     pub springs: Box<[Spring]>,
     pub group_lens: Box<[usize]>,
@@ -49,7 +49,7 @@ impl std::fmt::Display for PuzzleLine {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Spring {
     OK, DAMAGED, UNKNOWN
 }
