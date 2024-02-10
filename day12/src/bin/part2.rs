@@ -11,6 +11,13 @@ use day12::{PuzzleInput, PuzzleLine, Spring};
 
 const REPETITIONS: usize = 5;
 
+/// For part 2, we need a more efficient solution. We treat the specification (the comma-separated lengths) as a finite state automaton.
+/// A sequence of springs is valid if it ends in the final state of the automaton.
+/// The number of states is the total number of broken springs in the specification, plus some padding, because they need to be separated by working springs.
+/// When a wildcard is encountered, we duplicate the state and perform both transitions.
+/// We keep track of the multiplicities of each state.
+/// After processing the sequence of springs, the solution is the multiplicity of the final state.
+
 
 fn main() {
     let output = read_and_solve(INPUT_FILE).to_string();
