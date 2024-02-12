@@ -25,6 +25,8 @@ fn solve(input: &PuzzleInput) -> u64 {
 
 fn solve_column(height: usize, column: &Column) -> u64 {
     let mut total = 0;
+    // cur_cube is the index of the current cube plus 1, i.e., the first position where a round rock can be placed
+    // n_rounds_on_cur_cube counts the rocks already stacked on the current cube
     let (mut cur_cube, mut n_rounds_on_cur_cube) = (0, 0);
     let mut round_iter = column.round_positions.iter().peekable();
     let mut cube_iter = column.cube_positions.iter().peekable();

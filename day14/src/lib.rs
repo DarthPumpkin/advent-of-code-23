@@ -18,7 +18,7 @@ pub fn parse_input(input: &str) -> Result<PuzzleInput, <PuzzleInput as FromStr>:
     input.parse()
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PuzzleInput {
     pub height: usize,
     pub columns: Vec<Column>
@@ -45,14 +45,33 @@ impl FromStr for PuzzleInput {
     }
 }
 
-#[derive(Clone, Debug)]
+impl std::fmt::Display for PuzzleInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for i in 0..self.height {
+            for col in &self.columns {
+                let entry = if col.cube_positions.contains(&i) {
+                    Entry::CUBE
+                } else if col.round_positions.contains(&i) {
+                    Entry::ROUND
+                } else {
+                    Entry::GROUND
+                };
+                write!(f, "{}", entry.to_string())?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Column {
     pub cube_positions: Vec<usize>,
     pub round_positions: Vec<usize>
 }
 
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Entry {
     CUBE, ROUND, GROUND
 }
