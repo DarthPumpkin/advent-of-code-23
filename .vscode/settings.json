@@ -10,5 +10,6 @@
         "./day13/Cargo.toml",
         "./day14/Cargo.toml",
         "./day15/Cargo.toml",
+        "./template/Cargo.toml",
     ]
 }
