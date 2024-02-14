@@ -29,12 +29,6 @@ impl FromStr for PuzzleInput {
     }
 }
 
-impl fmt::Display for PuzzleInput {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
-    }
-}
-
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Symbol {
@@ -46,6 +40,17 @@ impl Symbol {
         match c {
             _ => Err(format!("Invalid character: {}", c))
         }
+    }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Pretty-printing
+/////////////////////////////////////////////////////////////////////////////
+
+impl fmt::Display for PuzzleInput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
     }
 }
 
