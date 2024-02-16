@@ -1,7 +1,9 @@
+use std::cmp::{max, min};
 use std::collections::{BinaryHeap, HashMap};
 use std::fmt;
 use std::str::FromStr;
 
+use itertools::iproduct;
 use ndarray::Array2;
 
 
@@ -11,23 +13,31 @@ type Cost = u64;
 
 
 // Solution based on A* search. The heuristic is the Manhattan distance
-// The nodes in the graph are the coordinates on the map, together with the (up to) three past steps.
-// Note that this means that each coordinate corresponds to (up to) 12 different nodes in the graph.
-// We don't need to store all possible nodes explicitly, because A* will never visit most of them if the heuristic is good enough.
+// The nodes in the graph are the coordinates on the map, together with the orientation (horizontal or vertical) of the previous step.
+// A transition from one node to another is a move of 1, 2 or 3 steps in a direction orthogonal to the previous step.
+// Note that this means that each coordinate corresponds to 2 different nodes in the graph.
+// We don't need to store all possible nodes explicitly, because A* will never visit some of them if the heuristic is good enough.
 
 
 pub fn solve_part1(input: &PuzzleInput) -> Solution1 {
-    let start = Node { y: 0, x: 0, prev_dir: None, len: 1 };
+    let start_v = Node { y: 0, x: 0, prev_orientation: Orientation::Vertical };
+    let start_h = Node { y: 0, x: 0, prev_orientation: Orientation::Horizontal };
     let goal = (input.map.shape()[0] - 1, input.map.shape()[1] - 1);
-    let mut fringe: BinaryHeap<HeapEntry> = [HeapEntry { node: start.clone(), f_val: heuristic(&start, &input) }].into();
+    let mut fringe: BinaryHeap<HeapEntry> = [
+        HeapEntry { node: start_v.clone(), f_val: heuristic(&start_v, &input) },
+        HeapEntry { node: start_h.clone(), f_val: heuristic(&start_h, &input) },
+    ].into();
     let mut came_from: HashMap<Node, Node> = HashMap::new();
-    let mut cost_so_far: HashMap<Node, Cost> = [(start, 0)].into();
+    let mut cost_so_far: HashMap<Node, Cost> = [(start_v, 0), (start_h, 0)].into();
     while let Some(HeapEntry { node, f_val: _ }) = fringe.pop() {
         if (node.y, node.x) == goal {
             return cost_so_far[&node];
         }
-        for neighbor in neighbors(&node, input) {
-            let new_cost = cost_so_far[&node] + input.map[[neighbor.y, neighbor.x]] as Cost;
+        let neighbors = neighbors(&node, &input);
+        for neighbor in neighbors {
+            let intermed = intermediaries((&node.y, &node.x), (&neighbor.y, &neighbor.x)).expect("Failed to find intermediaries");
+            let add_cost: Cost = intermed.into_iter().map(|(y, x)| input.map[[y, x]] as Cost).sum();
+            let new_cost = cost_so_far[&node] + add_cost;
             let prev_cost = cost_so_far.get(&neighbor).copied().unwrap_or(Cost::MAX);
             if new_cost < prev_cost {
                 cost_so_far.insert(neighbor.clone(), new_cost);
@@ -51,20 +61,39 @@ fn heuristic(node: &Node, input: &PuzzleInput) -> Cost {
 
 fn neighbors(node: &Node, input: &PuzzleInput) -> Vec<Node> {
     let mut neighbors = vec![];
-    for new_dir in [Direction::Up, Direction::Down, Direction::Left, Direction::Right].into_iter() {
-        if node.prev_dir.is_some_and(|d| d == new_dir.opposite()) { continue; }
-        let new_len = if node.prev_dir.is_some_and(|d| d == new_dir) { node.len + 1 } else { 1 };
-        if new_len <= 3 {
-            let new_y: Result<usize, _> = (node.y as isize + new_dir.dy()).try_into();
-            let new_x: Result<usize, _> = (node.x as isize + new_dir.dx()).try_into();
-            if let (Ok(new_y), Ok(new_x)) = (new_y, new_x) {
-                if new_y < input.map.shape()[0] && new_x < input.map.shape()[1] {
-                    neighbors.push(Node { y: new_y, x: new_x, prev_dir: Some(new_dir), len: new_len });
-                }
+    let len_candidates = [1, 2, 3];
+    let dir_candidates = node.prev_orientation.orthogonals();
+    for (new_len, new_dir) in iproduct!(len_candidates, dir_candidates) {
+        let new_y: Result<usize, _> = (node.y as isize + new_dir.dy() * new_len).try_into();
+        let new_x: Result<usize, _> = (node.x as isize + new_dir.dx() * new_len).try_into();
+        if let (Ok(new_y), Ok(new_x)) = (new_y, new_x) {
+            if new_y < input.map.shape()[0] && new_x < input.map.shape()[1] {
+                neighbors.push(Node { y: new_y, x: new_x, prev_orientation: new_dir.orientation() });
             }
         }
     }
     neighbors
+}
+
+fn intermediaries((y1, x1): (&usize, &usize), (y2, x2): (&usize, &usize)) -> Result<Vec<(usize, usize)>, ()> {
+    if y1 == y2 && x1 != x2 {
+        let x_min = *min(x1, x2);
+        let x_max = *max(x1, x2);
+        let coos = (x_min..=x_max).map(|x| (*y1, x));
+        if x1 > x2 {
+            return Ok(coos.rev().skip(1).collect());
+        }
+        return Ok(coos.skip(1).collect());
+    } else if x1 == x2 && y1 != y2 {
+        let y_min = *y1.min(y2);
+        let y_max = *y1.max(y2);
+        let coos = (y_min..=y_max).map(|y| (y, *x1));
+        if y1 > y2 {
+            return Ok(coos.rev().skip(1).collect());
+        }
+        return Ok(coos.skip(1).collect());
+    }
+    Err(())
 }
 
 // This bundles a node together with its f value (guess of total cost from start to goal through this node) so that the priority queue can sort nodes by f value
@@ -77,9 +106,12 @@ struct HeapEntry {
 // We sort by f value, plus some arbitrary tiebreaker. Doesn't matter much as long as all ties are broken consistently.
 impl PartialOrd for HeapEntry {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(other.f_val.cmp(&self.f_val)
-            .then(self.node.y.cmp(&other.node.y))
-            .then(self.node.x.cmp(&other.node.x)))
+        Some(
+            other.f_val.cmp(&self.f_val)
+                .then(self.node.y.cmp(&other.node.y))
+                .then(self.node.x.cmp(&other.node.x))
+                .then(self.node.prev_orientation.cmp(&other.node.prev_orientation))
+        )
     }
 }
 
@@ -93,8 +125,22 @@ impl Ord for HeapEntry {
 struct Node {
     y: usize,
     x: usize,
-    prev_dir: Option<Direction>,
-    len: u8,
+    prev_orientation: Orientation,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+enum Orientation {
+    Horizontal,
+    Vertical,
+}
+
+impl Orientation {
+    fn orthogonals(&self) -> [Direction; 2] {
+        match self {
+            Self::Vertical => [Direction::Left, Direction::Right],
+            Self::Horizontal => [Direction::Up, Direction::Down],
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
@@ -122,12 +168,10 @@ impl Direction {
         }
     }
 
-    fn opposite(&self) -> Self {
+    fn orientation(&self) -> Orientation {
         match self {
-            Direction::Up => Direction::Down,
-            Direction::Down => Direction::Up,
-            Direction::Left => Direction::Right,
-            Direction::Right => Direction::Left,
+            Direction::Up | Direction::Down => Orientation::Vertical,
+            Direction::Left | Direction::Right => Orientation::Horizontal,
         }
     }
 }
