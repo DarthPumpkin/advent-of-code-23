@@ -20,6 +20,14 @@ type Cost = u64;
 
 
 pub fn solve_part1(input: &PuzzleInput) -> Solution1 {
+    solve_for_arbitrary_len(input, &[1, 2, 3])
+}
+
+pub fn solve_part2(input: &PuzzleInput) -> Solution2 {
+    solve_for_arbitrary_len(input, &[4, 5, 6, 7, 8, 9, 10])
+}
+
+fn solve_for_arbitrary_len(input: &PuzzleInput, lengths: &[usize]) -> Solution1 {
     let start_v = Node { y: 0, x: 0, prev_orientation: Orientation::Vertical };
     let start_h = Node { y: 0, x: 0, prev_orientation: Orientation::Horizontal };
     let goal = (input.map.shape()[0] - 1, input.map.shape()[1] - 1);
@@ -27,13 +35,12 @@ pub fn solve_part1(input: &PuzzleInput) -> Solution1 {
         HeapEntry { node: start_v.clone(), f_val: heuristic(&start_v, &input) },
         HeapEntry { node: start_h.clone(), f_val: heuristic(&start_h, &input) },
     ].into();
-    let mut came_from: HashMap<Node, Node> = HashMap::new();
     let mut cost_so_far: HashMap<Node, Cost> = [(start_v, 0), (start_h, 0)].into();
     while let Some(HeapEntry { node, f_val: _ }) = fringe.pop() {
         if (node.y, node.x) == goal {
             return cost_so_far[&node];
         }
-        let neighbors = neighbors(&node, &input);
+        let neighbors = neighbors(&node, &input, lengths.iter().copied());
         for neighbor in neighbors {
             let intermed = intermediaries((&node.y, &node.x), (&neighbor.y, &neighbor.x)).expect("Failed to find intermediaries");
             let add_cost: Cost = intermed.into_iter().map(|(y, x)| input.map[[y, x]] as Cost).sum();
@@ -43,15 +50,10 @@ pub fn solve_part1(input: &PuzzleInput) -> Solution1 {
                 cost_so_far.insert(neighbor.clone(), new_cost);
                 let f_val = new_cost + heuristic(&neighbor, &input);
                 fringe.push(HeapEntry { node: neighbor.clone(), f_val });
-                came_from.insert(neighbor, node.clone());
             }
         }
     }
     panic!("No path to goal found");
-}
-
-pub fn solve_part2(input: &PuzzleInput) -> Solution2 {
-    todo!()
 }
 
 fn heuristic(node: &Node, input: &PuzzleInput) -> Cost {
@@ -59,13 +61,12 @@ fn heuristic(node: &Node, input: &PuzzleInput) -> Cost {
     (shape[0] + shape[1] - (node.y + node.x)) as Cost
 }
 
-fn neighbors(node: &Node, input: &PuzzleInput) -> Vec<Node> {
+fn neighbors(node: &Node, input: &PuzzleInput, len_candidates: impl Iterator<Item = usize>) -> Vec<Node> {
     let mut neighbors = vec![];
-    let len_candidates = [1, 2, 3];
     let dir_candidates = node.prev_orientation.orthogonals();
     for (new_len, new_dir) in iproduct!(len_candidates, dir_candidates) {
-        let new_y: Result<usize, _> = (node.y as isize + new_dir.dy() * new_len).try_into();
-        let new_x: Result<usize, _> = (node.x as isize + new_dir.dx() * new_len).try_into();
+        let new_y: Result<usize, _> = (node.y as isize + new_dir.dy() * new_len as isize).try_into();
+        let new_x: Result<usize, _> = (node.x as isize + new_dir.dx() * new_len as isize).try_into();
         if let (Ok(new_y), Ok(new_x)) = (new_y, new_x) {
             if new_y < input.map.shape()[0] && new_x < input.map.shape()[1] {
                 neighbors.push(Node { y: new_y, x: new_x, prev_orientation: new_dir.orientation() });
