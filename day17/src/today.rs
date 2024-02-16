@@ -6,6 +6,8 @@ use std::str::FromStr;
 use itertools::iproduct;
 use ndarray::Array2;
 
+use crate::aux::aux;
+
 
 pub type Solution1 = Cost;
 pub type Solution2 = u64;
@@ -62,18 +64,15 @@ fn heuristic(node: &Node, input: &PuzzleInput) -> Cost {
 }
 
 fn neighbors(node: &Node, input: &PuzzleInput, len_candidates: impl Iterator<Item = usize>) -> Vec<Node> {
-    let mut neighbors = vec![];
     let dir_candidates = node.prev_orientation.orthogonals();
-    for (new_len, new_dir) in iproduct!(len_candidates, dir_candidates) {
-        let new_y: Result<usize, _> = (node.y as isize + new_dir.dy() * new_len as isize).try_into();
-        let new_x: Result<usize, _> = (node.x as isize + new_dir.dx() * new_len as isize).try_into();
-        if let (Ok(new_y), Ok(new_x)) = (new_y, new_x) {
-            if new_y < input.map.shape()[0] && new_x < input.map.shape()[1] {
-                neighbors.push(Node { y: new_y, x: new_x, prev_orientation: new_dir.orientation() });
-            }
-        }
-    }
-    neighbors
+    iproduct!(len_candidates, dir_candidates).filter_map(|(new_len, new_dir)| {
+        let new_y = node.y as isize + new_dir.dy() * new_len as isize;
+        let new_x = node.x as isize + new_dir.dx() * new_len as isize;
+        let shape: [usize; 2] = input.map.shape().try_into().unwrap();
+        if let Some([new_y, new_x]) = aux::within_bounds([new_y, new_x], shape) {
+            Some(Node { y: new_y, x: new_x, prev_orientation: new_dir.orientation() })
+        } else { None }
+    }).collect()
 }
 
 fn intermediaries((y1, x1): (&usize, &usize), (y2, x2): (&usize, &usize)) -> Result<Vec<(usize, usize)>, ()> {
