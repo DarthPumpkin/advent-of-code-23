@@ -1,3 +1,3 @@
-#![feature(iter_repeat_n)]
+#![feature(step_trait)]
 
 pub mod today;
