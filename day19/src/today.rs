@@ -1,18 +1,20 @@
+use std::cmp::{max, min};
 use std::collections::HashMap;
-// use std::fmt;
+use std::ops::RangeInclusive;
 use std::str::FromStr;
-
-// use crate::aux;
 
 
 pub type Solution1 = u64;
 pub type Solution2 = u64;
 
+const TERMINAL_STATES: [&str; 2] = ["A", "R"];
+const RATING_RANGE: RangeInclusive<u32> = 1..=4000;
+
 
 pub fn solve_part1(input: &PuzzleInput) -> Solution1 {
     input.ratings.iter()
         .filter_map(|rating| {
-            if traverse(rating, &input.first, &input.workflows) {
+            if traverse_single(rating, &input.first, &input.workflows) {
                 Some(rating.sum() as Solution1)
             } else {
                 None
@@ -21,12 +23,20 @@ pub fn solve_part1(input: &PuzzleInput) -> Solution1 {
 }
 
 pub fn solve_part2(input: &PuzzleInput) -> Solution2 {
-    todo!()
+    let starting_rect = Rectangle {
+        x: RATING_RANGE.clone(),
+        m: RATING_RANGE.clone(),
+        a: RATING_RANGE.clone(),
+        s: RATING_RANGE.clone()
+    };
+    let starting_union = RectangleUnion { rectangles: vec![starting_rect] };
+    let final_union = traverse_union(&starting_union, &input.first, &input.workflows);
+    final_union.area() as Solution2
 }
 
-fn traverse(rating: &Rating, start: &str, workflows: &HashMap<String, Workflow>) -> bool {
+fn traverse_single(rating: &Rating, start: &str, workflows: &HashMap<String, Workflow>) -> bool {
     let mut next_workflow_id = start;
-    'outer: loop {
+    loop {
         let workflow = workflows.get(next_workflow_id).unwrap();
         let mut matched = false;
         'inner: for rule in workflow.rules.iter() {
@@ -47,6 +57,144 @@ fn traverse(rating: &Rating, start: &str, workflows: &HashMap<String, Workflow>)
         }
     }
 }
+
+fn traverse_union(union: &RectangleUnion, start: &str, workflows: &HashMap<String, Workflow>) -> RectangleUnion {
+    let mut state: HashMap<&str, RectangleUnion> = [(start, union.clone())].into();
+    while state.keys().any(|id| !TERMINAL_STATES.contains(id)) {
+        let mut new_state = HashMap::new();
+        for (id, region) in state.iter() {
+            if TERMINAL_STATES.contains(id) {
+                continue;
+            }
+            let workflow = workflows.get(&id.to_string()).unwrap();
+            let mut remaining_region = region.clone();
+            'rules: for rule in workflow.rules.iter() {
+                let (mapped_region, remainder) = remaining_region.split(&rule.condition);
+                remaining_region = remainder;
+                if !mapped_region.is_empty() {
+                    let next_region = new_state.entry(rule.direction.as_ref()).or_insert_with(RectangleUnion::new);
+                    next_region.rectangles.extend(mapped_region.rectangles);
+                }
+                if remaining_region.is_empty() {
+                    break 'rules;
+                }
+            }
+            if !remaining_region.is_empty() {
+                let next_region = new_state.entry(workflow.default.as_ref()).or_insert_with(RectangleUnion::new);
+                next_region.rectangles.extend(remaining_region.rectangles);
+            }
+        }
+        if let Some(accepted_region) = state.get("A") {
+            let new_accepted_region = new_state.entry("A").or_insert_with(RectangleUnion::new);
+            new_accepted_region.rectangles.extend(accepted_region.rectangles.iter().cloned());
+        }
+        state = new_state;
+    }
+    state["A"].clone()
+}
+
+#[derive(Clone, Debug)]
+struct RectangleUnion {
+    rectangles: Vec<Rectangle>
+}
+
+impl RectangleUnion {
+    fn new() -> Self {
+        RectangleUnion { rectangles: Vec::new() }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.rectangles.iter().all(|rect| rect.is_empty())
+    }
+
+    fn split(&self, condition: &Condition) -> (RectangleUnion, RectangleUnion) {
+        let mut matched = RectangleUnion::new();
+        let mut remaining = RectangleUnion::new();
+        for rect in self.rectangles.iter() {
+            let (matching_rect, remaining_rect) = rect.split(condition);
+            if !matching_rect.is_empty() {
+                matched.rectangles.push(matching_rect);
+            }
+            if !remaining_rect.is_empty() {
+                remaining.rectangles.push(remaining_rect);
+            }
+        }
+        (matched, remaining)
+    }
+
+    fn area(&self) -> u64 {
+        self.rectangles.iter().map(Rectangle::area).sum()
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Rectangle {
+    x: RangeInclusive<u32>,
+    m: RangeInclusive<u32>,
+    a: RangeInclusive<u32>,
+    s: RangeInclusive<u32>
+}
+
+impl Rectangle {
+    fn is_empty(&self) -> bool {
+        self.x.is_empty() || self.m.is_empty() || self.a.is_empty() || self.s.is_empty()
+    }
+
+    fn area(&self) -> u64 {
+        if self.is_empty() { 0 } else {
+            (self.x.end() - self.x.start() + 1) as u64
+            * (self.m.end() - self.m.start() + 1) as u64
+            * (self.a.end() - self.a.start() + 1) as u64
+            * (self.s.end() - self.s.start() + 1) as u64
+        }
+    }
+
+    fn split(&self, condition: &Condition) -> (Rectangle, Rectangle) {
+        match condition {
+            Condition::GreaterThan(Attribute::X, value) => {
+                let matching = Rectangle { x: max(value + 1, *self.x.start())..=*self.x.end(), ..self.clone() };
+                let remaining = Rectangle { x: *self.x.start()..=min(*value, *self.x.end()), ..self.clone() };
+                (matching, remaining)
+            }
+            Condition::GreaterThan(Attribute::M, value) => {
+                let matching = Rectangle { m: max(value + 1, *self.m.start())..=*self.m.end(), ..self.clone() };
+                let remaining = Rectangle { m: *self.m.start()..=min(*value, *self.m.end()), ..self.clone() };
+                (matching, remaining)
+            }
+            Condition::GreaterThan(Attribute::A, value) => {
+                let matching = Rectangle { a: max(value + 1, *self.a.start())..=*self.a.end(), ..self.clone() };
+                let remaining = Rectangle { a: *self.a.start()..=min(*value, *self.a.end()), ..self.clone() };
+                (matching, remaining)
+            }
+            Condition::GreaterThan(Attribute::S, value) => {
+                let matching = Rectangle { s: max(value + 1, *self.s.start())..=*self.s.end(), ..self.clone() };
+                let remaining = Rectangle { s: *self.s.start()..=min(*value, *self.s.end()), ..self.clone() };
+                (matching, remaining)
+            }
+            Condition::LessThan(Attribute::X, value) => {
+                let matching = Rectangle { x: *self.x.start()..=min(value - 1, *self.x.end()), ..self.clone() };
+                let remaining = Rectangle { x: max(*value, *self.x.start())..=*self.x.end(), ..self.clone() };
+                (matching, remaining)
+            }
+            Condition::LessThan(Attribute::M, value) => {
+                let matching = Rectangle { m: *self.m.start()..=min(value - 1, *self.m.end()), ..self.clone() };
+                let remaining = Rectangle { m: max(*value, *self.m.start())..=*self.m.end(), ..self.clone() };
+                (matching, remaining)
+            }
+            Condition::LessThan(Attribute::A, value) => {
+                let matching = Rectangle { a: *self.a.start()..=min(value - 1, *self.a.end()), ..self.clone() };
+                let remaining = Rectangle { a: max(*value, *self.a.start())..=*self.a.end(), ..self.clone() };
+                (matching, remaining)
+            }
+            Condition::LessThan(Attribute::S, value) => {
+                let matching = Rectangle { s: *self.s.start()..=min(value - 1, *self.s.end()), ..self.clone() };
+                let remaining = Rectangle { s: max(*value, *self.s.start())..=*self.s.end(), ..self.clone() };
+                (matching, remaining)
+            }
+        }
+    }
+}
+
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PuzzleInput {
