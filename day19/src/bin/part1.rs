@@ -27,25 +27,13 @@ fn read_and_solve(file_path: impl AsRef<Path>) -> Solution1 {
 mod part1 {
     use super::*;
 
-    const TEST_SOLUTION: Solution1 = 0;
+    const TEST_SOLUTION: Solution1 = 19114;
 
     #[test]
     fn test_solution() {
         let test_output = read_and_solve("test_input.txt");
         assert_eq!(test_output, TEST_SOLUTION);
     }
-
-    // const TEST_1 = todo!();
-    // const TEST_2 = todo!();
-
-    // #[test]
-    // fn test_cases() {
-    //     let test_input = parse_input(&read_input("test_input.txt").unwrap()).unwrap();
-    //     let output_1 = solve_single(&test_input.cases[0]);
-    //     let output_2 = solve_single(&test_input.cases[1]);
-    //     assert_eq!(output_1, TEST_1);
-    //     assert_eq!(output_2, TEST_2);
-    // }
 
     #[bench]
     fn bench_solution(b: &mut test::Bencher) {
